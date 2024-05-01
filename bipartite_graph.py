@@ -1,33 +1,5 @@
+from DataStructure import RecipeGraph
 import json
-from collections import defaultdict, deque
-
-class RecipeGraph:
-    def __init__(self):
-        self.graph = defaultdict(list)
-
-    def add_edge(self, node1, node2):
-        self.graph[node1].append(node2)
-
-    def bfs(self, start):
-        visited = set()
-        queue = deque([(start, [])])
-        results=defaultdict(list)
-        while queue:
-            node, path = queue.popleft()
-            if node not in visited:
-                visited.add(node)
-                if start in self.graph[node]:
-                    results[node]=self.graph[node]
-                for neighbor in self.graph[node]:
-                    if neighbor not in visited:
-                        queue.append((neighbor, path + [neighbor]))
-        return results
-                    
-    def print_graph(self):
-        print(self.graph)
-        
-    def get_graph(self):
-        return self.graph
 
 def build_graph(filename):
     graph = RecipeGraph()
@@ -44,6 +16,11 @@ def build_graph(filename):
     
     return graph
 
+def print_recipes(recipes):
+    print("Available recipes:")
+    for i, recipe in enumerate(recipes, start=1):
+        print(f"{i}. {recipe}")
+
 def main():
     filename = "recipes.txt"
     graph = build_graph(filename)
@@ -56,12 +33,46 @@ def main():
             print("No recipes found with that ingredient.")
             continue
 
-        results=graph.bfs(ingredient)
-        for recipe, ingredients in results.items():  # Ensure ingredient is lowercased
-            if ingredients != recipe:
-                print(f"Recipe: {recipe}, Ingredients: {', '.join(ingredients)}")
-               
-            
+        results = graph.bfs(ingredient)
+        recipes = [recipe for recipe in results.keys() if recipe != ingredient]
+        
+        if not recipes:
+            print("No recipes found with that ingredient.")
+            continue
 
+        print("Available recipes:")
+        for i, recipe in enumerate(recipes, start=1):
+            print(f"{i}. {recipe}")
+            
+        choice = input("Enter the number of the recipe you want to view: ")
+            
+        try:
+            choice = int(choice)
+            if 1 <= choice <= len(recipes):
+                selected_recipe = recipes[choice - 1]
+                print(f"\nRecipe: {selected_recipe}\n")
+                
+                # Fetching full recipe details
+                with open(filename, "r") as file:
+                    data = json.load(file)
+                    for meal in data["meals"]:
+                        if meal["strMeal"] == selected_recipe:
+                            print(f"Ingredients:")
+                            for i in range(1, 21):
+                                ingredient_key = f"strIngredient{i}"
+                                measure_key = f"strMeasure{i}"
+                                ingredient = meal[ingredient_key]
+                                measure = meal[measure_key]
+                                if ingredient and measure:
+                                    print(f"- {measure} {ingredient}")
+                            print(f"\nFull recipe instructions:\n{meal['strInstructions']}\n")
+                            print(f"Here is a video link tutorial: {meal['strYoutube']}\n")
+                            break
+            else:
+                print("Invalid choice. Please enter a valid number.")
+                
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+          
 if __name__ == "__main__":
     main()
